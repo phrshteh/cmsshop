@@ -15,6 +15,10 @@ return new class extends Migration
     {
         Schema::create('buyables', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('content_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('price')->default(0);
+            $table->unsignedBigInteger('discount_price')->default(0);
+            $table->timestamp('availabled_at')->nullable();
             $table->timestamps();
         });
     }
