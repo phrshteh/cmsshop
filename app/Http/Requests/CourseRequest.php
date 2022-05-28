@@ -8,7 +8,7 @@ use App\Models\Media;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class ContentRequest extends FormRequest
+class CourseRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -29,39 +29,39 @@ class ContentRequest extends FormRequest
     {
         if ($this->method() == 'POST') {
             return [
-                'category_id'        => 'required|exists:categories,id',
-                'title'              => 'required|string|unique:contents,title',
-                'slug'               => 'nullable|string|unique:contents,slug',
-                'description'        => 'nullable|string',
-                'intro'              => 'nullable|string',
-                'cover_id'           => 'nullable|exists:media,id',
-                'fields'             => 'nullable|array',
-                'fields.*.field_id'  => 'required_with:fields[0]|exists:extra_fields,id',
-                'fields.*.value'     => 'nullable',
-                'tags'               => 'nullable|array',
-                'tags.*'             => 'nullable|string',
-                'is_buyable'         => 'sometimes',
-                'price'              => 'required_with:is_buyable|numeric',
-                'discount_price'     => 'nullable|numeric',
+                'category_id'       => 'required|exists:categories,id',
+                'title'             => 'required|string|unique:contents,title',
+                'slug'              => 'nullable|string|unique:contents,slug',
+                'description'       => 'nullable|string',
+                'intro'             => 'nullable|string',
+                'cover_id'          => 'nullable|exists:media,id',
+                'fields'            => 'nullable|array',
+                'fields.*.field_id' => 'required_with:fields[0]|exists:extra_fields,id',
+                'fields.*.value'    => 'nullable',
+                'tags'              => 'nullable|array',
+                'tags.*'            => 'nullable|string',
+                'price'             => 'required_with:is_buyable|numeric',
+                'discount_price'    => 'nullable|numeric',
+                'course_type'       => 'required|in:1,2,3,4', // infinitive
             ];
         }
 
         return [
-            'category_id'        => 'sometimes|exists:categories,id',
-            'title'              => 'sometimes|string|unique:contents,title,'.$this->route('content')->id,
-            'slug'               => 'nullable|string|unique:contents,slug,'.$this->route('content')->id,
-            'description'        => 'nullable|string',
-            'intro'              => 'nullable|string',
-            'cover_id'           => 'nullable|exists:media,id',
-            'fields'             => 'nullable|array',
-            'fields.*.field_id'  => 'required_with:fields[0]|exists:extra_fields,id',
-            'fields.*.value'     => 'nullable',
-            'tags'               => 'sometimes|array',
-            'tags.*'             => 'nullable|string',
-            'is_buyable'         => 'sometimes',
-            'price'              => 'required_with:is_buyable|numeric',
-            'discount_price'     => 'nullable|numeric',
-            'is_available'       => 'sometimes',
+            'category_id'       => 'sometimes|exists:categories,id',
+            'title'             => 'sometimes|string|unique:contents,title,'.$this->route('content')->id,
+            'slug'              => 'nullable|string|unique:contents,slug,'.$this->route('content')->id,
+            'description'       => 'nullable|string',
+            'intro'             => 'nullable|string',
+            'cover_id'          => 'nullable|exists:media,id',
+            'fields'            => 'nullable|array',
+            'fields.*.field_id' => 'required_with:fields[0]|exists:extra_fields,id',
+            'fields.*.value'    => 'nullable',
+            'tags'              => 'sometimes|array',
+            'tags.*'            => 'nullable|string',
+            'is_buyable'        => 'sometimes',
+            'price'             => 'required_with:is_buyable|numeric',
+            'discount_price'    => 'nullable|numeric',
+            'is_available'      => 'sometimes',
         ];
     }
 
@@ -99,7 +99,10 @@ class ContentRequest extends FormRequest
                 $category               = Category::findOrFail($validator->attributes()['category_id']);
                 $extraFieldRequiredKeys = $category->extraFields()->where('optional', 0)->pluck('id')->toArray();
 
-                if (array_key_exists('fields', $validator->attributes()) and count($validator->attributes()['fields'])) {
+                if (array_key_exists('fields', $validator->attributes()) and count(
+                        $validator->attributes()['fields']
+                    )
+                ) {
                     foreach ($validator->attributes()['fields'] as $attribute) {
                         $filledKeys[] = $attribute['field_id'];
                     }
@@ -117,18 +120,25 @@ class ContentRequest extends FormRequest
                     }
                 }
 
-                if (array_key_exists('fields', $validator->attributes()) and count($validator->attributes()['fields'])) {
+                if (array_key_exists('fields', $validator->attributes()) and count(
+                        $validator->attributes()['fields']
+                    )
+                ) {
                     foreach ($validator->attributes()['fields'] as $attribute) {
                         $extraField = ExtraField::where('id', $attribute['field_id'])->first();
 
-                        if ($extraField->type == 'file' and ! Media::where('id', $attribute['value'])->first()  and !$extraField->optional) {
+                        if ($extraField->type == 'file' and ! Media::where('id', $attribute['value'])->first()
+                            and ! $extraField->optional
+                        ) {
                             $validator->errors()->add(
                                 'file',
                                 trans('messages.contents.store.failed.file', ['title' => $extraField?->title])
                             );
                         }
 
-                        if ($extraField->type == 'string' and gettype($attribute['value']) != 'string' and !$extraField->optional) {
+                        if ($extraField->type == 'string' and gettype($attribute['value']) != 'string'
+                            and ! $extraField->optional
+                        ) {
                             $validator->errors()->add(
                                 'string',
                                 trans('messages.contents.store.failed.string', ['title' => $extraField?->title])

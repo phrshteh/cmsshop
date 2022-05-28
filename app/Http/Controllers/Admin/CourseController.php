@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ContentRequest;
+use App\Http\Requests\CourseRequest;
 use App\Http\Resources\Admin\ContentCollection;
 use App\Http\Resources\Admin\ContentResource;
 use App\Http\Resources\ExceptionResource;
@@ -13,7 +13,7 @@ use App\Models\Tag;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
-class ContentController extends Controller
+class CourseController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -45,20 +45,10 @@ class ContentController extends Controller
             $contents->where('category_id', request()->input('category_id'));
         }
 
-        //desc , asc
-        if (\request()->filled('direction')) {
-            $contents->orderBy(
-                'created_at',
-                \request()->input('direction') ?? 'desc'
-            );
-        } else {
-            $contents->orderBy('created_at', 'desc');
-        }
-
         if (\request()->filled('dropdown')) {
             $data = $contents->get(['id', 'title']);
         } else {
-            $data = $contents->with('category')
+            $data = $contents->with('category')->latest()
                 ->paginate(\request()->input('per_page') ?? 15);
         }
 
@@ -68,16 +58,18 @@ class ContentController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  ContentRequest  $request
+     * @param  \App\Http\Requests\CourseRequest  $request
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(ContentRequest $request)
+    public function store(CourseRequest $request)
     {
-        $contentAttributes     =
+        $contentAttributes         =
             $request->safe(['category_id', 'title', 'slug', 'description', 'intro', 'cover_id']);
-        $extraValuesAttributes = $request->safe(['fields']);
-        $tagAttributes         = $request->safe(['tags']);
+        $relatedContentsAttributes = $request->safe(['related_contents']);
+        $extraValuesAttributes     = $request->safe(['fields']);
+        $tagAttributes             = $request->safe(['tags']);
+        $buyableAttributes         = $request->safe(['is_buyable', 'price', 'discount_price']);
 
         DB::beginTransaction();
         try {
@@ -102,6 +94,19 @@ class ContentController extends Controller
                     $content->tags()->attach($tag);
                 }
             }
+
+
+            if (array_key_exists('related_contents', $relatedContentsAttributes)
+                and count($relatedContentsAttributes['related_contents'])
+            ) {
+                $content->relatedContents()->attach($relatedContentsAttributes['related_contents']);
+            }
+
+            if (array_key_exists('is_buyable', $buyableAttributes)) {
+                $buyableAttributes['availabled_at'] = now();
+                $content->buyable()->create($buyableAttributes);
+            }
+
 
             DB::commit();
         } catch (\Exception $exception) {
@@ -135,17 +140,19 @@ class ContentController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  ContentRequest  $request
+     * @param  CourseRequest  $request
      * @param  \App\Models\Content  $content
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(ContentRequest $request, Content $content)
+    public function update(CourseRequest $request, Content $content)
     {
-        $contentAttributes     =
+        $contentAttributes         =
             $request->safe(['category_id', 'title', 'slug', 'description', 'intro', 'cover_id']);
-        $extraValuesAttributes = $request->safe(['fields']);
-        $tagAttributes         = $request->safe(['tags']);
+        $relatedContentsAttributes = $request->safe(['related_contents']);
+        $extraValuesAttributes     = $request->safe(['fields']);
+        $tagAttributes             = $request->safe(['tags']);
+        $buyableAttributes         = $request->safe(['is_available', 'price', 'discount_price']);
 
         DB::beginTransaction();
         try {
@@ -169,6 +176,18 @@ class ContentController extends Controller
                     ]
                 );
                 $content->tags()->attach($tag);
+            }
+
+            if (array_key_exists('related_contents', $relatedContentsAttributes)
+                and count($relatedContentsAttributes['related_contents'])
+            ) {
+                $content->relatedContents()->attach($relatedContentsAttributes['related_contents']);
+            }
+
+            if (array_key_exists('is_buyable', $buyableAttributes)) {
+                $buyableAttributes['availabled_at'] =
+                    array_key_exists('is_available', $buyableAttributes) ? now() : null;
+                $content->buyable()->create($buyableAttributes);
             }
 
             DB::commit();

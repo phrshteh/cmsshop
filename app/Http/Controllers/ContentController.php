@@ -18,7 +18,7 @@ class ContentController extends Controller
      */
     public function index()
     {
-        $contents = Content::query()->with(['cover', 'tags'])->latest('created_at');
+        $contents = Content::query()->with(['cover', 'tags']);
 
         if (\request()->filled('slug')) {
             $slug = \request()->input('slug');
@@ -45,6 +45,8 @@ class ContentController extends Controller
                 'created_at',
                 \request()->input('direction') ?? 'desc'
             );
+        } else {
+            $contents->orderBy('created_at', 'desc');
         }
 
         $data = $contents->paginate(\request()->input('per_page') ?? 15);

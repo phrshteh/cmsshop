@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Content extends Model
 {
@@ -97,5 +98,10 @@ class Content extends Model
         return Content::where('category_id', $this->category()->first()?->id)->inRandomOrder()->first(
             ['id', 'title', 'slug']
         );
+    }
+
+    public function buyable(): HasOne
+    {
+        return $this->hasOne(Buyable::class, 'content_id');
     }
 }
