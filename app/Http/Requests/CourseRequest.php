@@ -42,7 +42,10 @@ class CourseRequest extends FormRequest
                 'tags.*'            => 'nullable|string',
                 'price'             => 'required_with:is_buyable|numeric',
                 'discount_price'    => 'nullable|numeric',
-                'course_type'       => 'required|in:1,2,3,4', // infinitive
+                'course_type'       => 'required|in:1,2,3,4', // unlimited simple - quorum - limited simple - capacity
+                'finished_at'       => 'nullable|datetime',
+                'quorum'            => 'nullable|numeric',
+                'capacity'          => 'nullable|numeric',
             ];
         }
 
@@ -58,10 +61,13 @@ class CourseRequest extends FormRequest
             'fields.*.value'    => 'nullable',
             'tags'              => 'sometimes|array',
             'tags.*'            => 'nullable|string',
-            'is_buyable'        => 'sometimes',
             'price'             => 'required_with:is_buyable|numeric',
             'discount_price'    => 'nullable|numeric',
             'is_available'      => 'sometimes',
+            'course_type'       => 'required|in:1,2,3,4', // unlimited simple - quorum - limited simple - capacity
+            'finished_at'       => 'nullable|datetime',
+            'quorum'            => 'nullable|numeric',
+            'capacity'          => 'nullable|numeric',
         ];
     }
 
@@ -144,6 +150,29 @@ class CourseRequest extends FormRequest
                                 trans('messages.contents.store.failed.string', ['title' => $extraField?->title])
                             );
                         }
+                    }
+                }
+
+                if ($validator->attributes()['course_type'] == 2) {
+                    if ( ! $validator->attributes()['quorum']) {
+                        $validator->errors()->add(
+                            'quorum',
+                            trans('messages.contents.store.failed.quorum')
+                        );
+                    }
+                } elseif ($validator->attributes()['course_type'] == 3) {
+                    if ( ! $validator->attributes()['finished_at']) {
+                        $validator->errors()->add(
+                            'quorum',
+                            trans('messages.contents.store.failed.finished_at')
+                        );
+                    }
+                } elseif ($validator->attributes()['course_type'] == 4) {
+                    if ( ! $validator->attributes()['capacity']) {
+                        $validator->errors()->add(
+                            'quorum',
+                            trans('messages.contents.store.failed.capacity')
+                        );
                     }
                 }
             }

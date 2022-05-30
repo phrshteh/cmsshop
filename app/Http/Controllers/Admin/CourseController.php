@@ -70,6 +70,7 @@ class CourseController extends Controller
         $extraValuesAttributes     = $request->safe(['fields']);
         $tagAttributes             = $request->safe(['tags']);
         $buyableAttributes         = $request->safe(['is_buyable', 'price', 'discount_price']);
+        $courseDetailAttributes    = $request->safe(['course_type', 'finished_at', 'quorum', 'capacity']);
 
         DB::beginTransaction();
         try {
@@ -95,16 +96,27 @@ class CourseController extends Controller
                 }
             }
 
-
             if (array_key_exists('related_contents', $relatedContentsAttributes)
                 and count($relatedContentsAttributes['related_contents'])
             ) {
                 $content->relatedContents()->attach($relatedContentsAttributes['related_contents']);
             }
 
-            if (array_key_exists('is_buyable', $buyableAttributes)) {
-                $buyableAttributes['availabled_at'] = now();
-                $content->buyable()->create($buyableAttributes);
+            $buyableAttributes['availabled_at'] = now();
+            $buyable                            = $content->buyable()->create($buyableAttributes);
+
+            if ($courseDetailAttributes['course_type'] == 2) {
+                $buyable->courseDetail()->create([
+                    'quorum' => $contentAttributes['quorum']
+                ]);
+            } elseif ($courseDetailAttributes['course_type'] == 3) {
+                $buyable->courseDetail()->create([
+                    'finished_at' => $contentAttributes['finished_at']
+                ]);
+            } elseif ($courseDetailAttributes['course_type'] == 4) {
+                $buyable->courseDetail()->create([
+                    'capacity' => $contentAttributes['capacity']
+                ]);
             }
 
 
